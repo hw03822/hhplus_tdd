@@ -18,6 +18,9 @@ public record UserPoint(
     }
 
     private static void validate(long id, long point){
+        if(id < 0) {
+            throw new IllegalArgumentException("id는 0L 이상입니다.");
+        }
         if(point < 0) {
             throw new IllegalArgumentException("충전할 수 있는 최소 금액은 0 이상입니다.");
         }

@@ -83,4 +83,16 @@ class UserPointTest {
         assertThrows(IllegalArgumentException.class, () -> userPoint1.use(200L).point());
         assertThrows(IllegalArgumentException.class, () -> userPoint2.use(50L).point());
     }
+
+    @Test
+    @DisplayName("포인트 조회 시, id에 0보다 작은 값이 들어가면 예외처리한다.")
+    void selectPointByNull_ReturnException() {
+        //given
+
+        //when
+
+        //then
+        assertThrows(IllegalArgumentException.class, () -> UserPoint.empty(-1L));
+
+    }
 }

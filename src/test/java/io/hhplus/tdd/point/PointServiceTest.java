@@ -1,5 +1,6 @@
 package io.hhplus.tdd.point;
 
+import io.hhplus.tdd.database.PointHistoryTable;
 import io.hhplus.tdd.database.UserPointTable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,6 +19,7 @@ class PointServiceTest {
 
         // DB Mock
         UserPointTable mockRepository = mock(UserPointTable.class);
+        PointHistoryTable mockHistRepository = mock(PointHistoryTable.class);
 
         // Domain Mock
         // 조회된 객체 생성
@@ -26,7 +28,7 @@ class PointServiceTest {
         UserPoint mockUserPointAfter = mock(UserPoint.class);
 
         // service 설정
-        PointService pointService = new PointService(mockRepository);
+        PointService pointService = new PointService(mockRepository,mockHistRepository);
 
         // selectById 호출 -> mockUserPoint 반환
         when(mockRepository.selectById(id)).thenReturn(mockUserPoint);
@@ -60,10 +62,11 @@ class PointServiceTest {
         long amount = -100L;
 
         //Mock 생성
-        UserPointTable mockRepository = mock(UserPointTable.class);
         UserPoint mockUserPoint = mock(UserPoint.class);
 
-        PointService pointService = new PointService(mockRepository);
+        UserPointTable mockRepository = mock(UserPointTable.class);
+        PointHistoryTable mockHistRepository = mock(PointHistoryTable.class);
+        PointService pointService = new PointService(mockRepository,mockHistRepository);
 
         //selectById 호출 -> mockUserPoint 반환
         when(mockRepository.selectById(id)).thenReturn(mockUserPoint);
@@ -88,6 +91,7 @@ class PointServiceTest {
 
         // DB Mock
         UserPointTable mockRepository = mock(UserPointTable.class);
+        PointHistoryTable mockHistRepository = mock(PointHistoryTable.class);
 
         // Domain Mock
         // 조회된 객체를 가짜로 생성
@@ -96,7 +100,7 @@ class PointServiceTest {
         UserPoint mockUserPointAfter = mock(UserPoint.class);
 
         // service 설정
-        PointService pointService = new PointService(mockRepository);
+        PointService pointService = new PointService(mockRepository,mockHistRepository);
 
         // selectById 호출 -> mockUserPoint 반환
         when(mockRepository.selectById(id)).thenReturn(mockUserPoint);
@@ -129,10 +133,11 @@ class PointServiceTest {
         long id = 1L;
         long amount = 300L;
 
-        UserPointTable mockRepository = mock(UserPointTable.class);
         UserPoint mockUserPoint = mock(UserPoint.class);
 
-        PointService pointService = new PointService(mockRepository);
+        UserPointTable mockRepository = mock(UserPointTable.class);
+        PointHistoryTable mockHistRepository = mock(PointHistoryTable.class);
+        PointService pointService = new PointService(mockRepository,mockHistRepository);
 
         //selectById 호출 -> mockUserPoint 반환
         when(mockRepository.selectById(id)).thenReturn(mockUserPoint);
@@ -148,5 +153,36 @@ class PointServiceTest {
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("잔액이 부족합니다.");
 
+    }
+
+    @Test
+    @DisplayName("포인트 조회 시, 유효한 ID이면 저장된 값/존재하지 않는 ID 이면 0을 조회한다.")
+    void selectPointById_ReturnPoint() {
+        //given
+        long id = 1L;
+        long amount = 200L;
+
+        UserPointTable mockRepository = mock(UserPointTable.class);
+        PointHistoryTable mockHistRepository = mock(PointHistoryTable.class);
+        PointService pointService = new PointService(mockRepository,mockHistRepository);
+
+        //유효한 id 1L 의 포인트는 200L
+        when(mockRepository.selectById(id)).thenReturn(new UserPoint(id, amount, System.currentTimeMillis()));
+
+        //존재하지 않는 id 50L의 포인트는 0
+        when(mockRepository.selectById(50L)).thenReturn(UserPoint.empty(50L));
+
+        //when
+        long selectedPoint = pointService.selectPoint(id).point();
+        long initPoint = pointService.selectPoint(50L).point();
+
+        //then
+        // 유효한 id
+        assertThat(selectedPoint).isEqualTo(amount);
+        verify(mockRepository).selectById(id);
+
+        // 존재하지 않는 id
+        assertThat(initPoint).isEqualTo(0L);
+        verify(mockRepository).selectById(50L);
     }
 }
