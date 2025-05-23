@@ -5,6 +5,8 @@ import io.hhplus.tdd.database.UserPointTable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.verify;
 import static org.assertj.core.api.Assertions.*;
@@ -44,6 +46,9 @@ class PointServiceTest {
         UserPoint result = pointService.chargePoint(id, amount);
 
         //then : 흐름 검증 (흐름 검증이라 값에 대한 검증은 하지 않음)
+        // 포인트 히스토리 남기기 위해 insert가 호출 됐는지
+        verify(mockHistRepository).insert(eq(id),eq(amount),eq(TransactionType.CHARGE),anyLong());
+
         // selectById 가 호출 됐는지
         verify(mockRepository).selectById(id);
 
@@ -116,6 +121,9 @@ class PointServiceTest {
         UserPoint result = pointService.usePoint(id, amount);
 
         //then : 흐름 검증 (흐름 검증이라 값에 대한 검증은 하지 않음)
+        // 포인트 히스토리 남기기 위해 insert가 호출 됐는지
+        verify(mockHistRepository).insert(eq(id),eq(amount),eq(TransactionType.USE),anyLong());
+
         // selectById 가 호출 됐는지
         verify(mockRepository).selectById(id);
 
@@ -184,5 +192,44 @@ class PointServiceTest {
         // 존재하지 않는 id
         assertThat(initPoint).isEqualTo(0L);
         verify(mockRepository).selectById(50L);
+    }
+
+    @Test
+    @DisplayName("ID로 포인트 충전 및 사용 히스토리를 조회한다.")
+    void selectPointHistory_ReturnHistList() {
+        //given
+        long id = 1L;
+
+        UserPointTable mockRepository = mock(UserPointTable.class);
+        PointHistoryTable mockHistRepository = mock(PointHistoryTable.class);
+        PointService pointService = new PointService(mockRepository, mockHistRepository);
+
+        when(mockHistRepository.selectAllByUserId(id))
+                .thenReturn(List.of(
+                                new PointHistory(1,id,100L,TransactionType.CHARGE, System.currentTimeMillis()),
+                                new PointHistory(2,id,50L,TransactionType.USE, System.currentTimeMillis())
+                        )
+                );
+
+        //when
+        List<PointHistory> histList = pointService.getPointHistByUserId(id);
+
+        //then
+        assertThat(histList.size()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("히스토리가 없는 경우 빈 리스트를 반환한다.")
+    void selectPointHistory_ReturnEmpty() {
+        //given
+        UserPointTable mockRepository = mock(UserPointTable.class);
+        PointHistoryTable mockHistRepository = mock(PointHistoryTable.class);
+        PointService pointService = new PointService(mockRepository, mockHistRepository);
+
+        //when
+        List<PointHistory> histList = pointService.getPointHistByUserId(2L);
+
+        //then
+        assertThat(histList).isEmpty();
     }
 }
